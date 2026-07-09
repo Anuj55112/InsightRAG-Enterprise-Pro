@@ -125,6 +125,17 @@ make lint
 make test
 ```
 
+
+## 📊 Performance Benchmarks
+
+Below is a latency comparison running dynamic knowledge graph clusters:
+
+<!-- BENCHMARK_TABLE_START -->
+*Benchmark Not Run: Missing required dependencies: sentence_transformers*
+<!-- BENCHMARK_TABLE_END -->
+
+---
+
 ## 🛠️ Verification & Test Compliance
 
 All target test suites execute successfully:
