@@ -1,0 +1,43 @@
+\documentclass[11pt,journal,onecolumn]{IEEEtran}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\begin{document}
+
+\title{InsightRAG Pro: A Enterprise retrieval-Augmented Generation Platform with GraphRAG and Quality Evaluator Checkers}
+\author{Anuj Meena}
+\maketitle
+
+\begin{abstract}
+This report details the implementation of InsightRAG Pro, a production-grade Retrieval-Augmented Generation (RAG) platform. The system implements table-aware recursive text chunking, hybrid Reciprocal Rank Fusion (RRF) search (BM25 sparse + dense vectors), and secondary Cross-Encoder reranking. Furthermore, the platform parses entity-relationship subgraphs from document chunks, mapping modular communities using modularity-greedy clustering algorithms in NetworkX. To evaluate RAG quality, we implement mathematical context relevance, faithfulness, correctness, and hallucination scoring checkers that run offline. FastAPI backend services and a comprehensive Streamlit dashboard are presented.
+\end{abstract}
+
+\section{Introduction}
+As large language models (LLMs) are deployed in enterprise environments, preventing hallucination and resolving multi-hop relationships over private datasets become critical priorities. Simple vector retrieval methods often fail to capture structural connections between documents or tables. InsightRAG Pro provides a production-grade framework combining hybrid RRF search, GraphRAG entity-relation networks, and built-in quality evaluation metrics.
+
+\section{System Framework}
+\subsection{Hybrid RRF Searcher}
+Lexical keyword matching (BM25) and dense embeddings (SentenceTransformers) are merged using Reciprocal Rank Fusion (RRF):
+\begin{equation}
+RRF(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}
+\end{equation}
+where $M$ represents the search retrievers and $r_m(d)$ represents the rank of document $d$ in retriever $m$. We set $k = 60$. Top candidates are reranked using a Cross-Encoder network.
+
+\subsection{GraphRAG Integration}
+Document chunks are scanned to extract entity-relationship triplets. These triplets populate a NetworkX graph. Modularity-based greedy community detection algorithms cluster related entities into semantic context domains, supporting multi-hop relation analysis during query execution.
+
+\subsection{RAGBench Evaluator Checkers}
+To evaluate execution quality, four metrics are computed mathematically:
+\begin{itemize}
+    \item \textbf{Context Relevance}: Overlap of query tokens in context.
+    \item \textbf{Faithfulness}: Semantic grounding of answer statements in context.
+    \item \textbf{Answer Correctness}: Token alignment of generated answers with reference labels.
+    \item \textbf{Hallucination Rate}: Claims made in the answer that do not appear in the context.
+\end{itemize}
+
+\section{Conclusion}
+InsightRAG Pro delivers an end-to-end enterprise solution for structured document indexing, relational graphing, and automated QA verification.
+
+\end{document}
