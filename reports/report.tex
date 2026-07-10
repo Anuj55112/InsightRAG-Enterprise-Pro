@@ -12,7 +12,7 @@
 \maketitle
 
 \begin{abstract}
-This report documents the design, mathematical formulation, and system architecture of InsightRAG Pro, an enterprise-grade Retrieval-Augmented Generation (RAG) platform. The system implements a table-aware recursive chunker to keep data layouts intact, a hybrid search engine fusing BM25 sparse scores and dense sentence embeddings via Reciprocal Rank Fusion (RRF), and a secondary Cross-Encoder reranker. Furthermore, the platform parses entity-relationship networks and appliesmodular community detection algorithms in NetworkX to handle multi-hop queries. RAG output quality is measured using mathematical grounding, relevance, correctness, and hallucination scoring checkers that run offline. We present the complete mathematical equations, data pipelines, and validation results.
+This report documents the design, mathematical formulation, and system architecture of InsightRAG Pro, an enterprise-grade Retrieval-Augmented Generation (RAG) platform. The system implements a table-aware recursive chunker to keep data layouts intact, a hybrid search engine fusing BM25 sparse scores and dense sentence embeddings via Reciprocal Rank Fusion (RRF), and a secondary Cross-Encoder reranker. Furthermore, the platform parses entity-relationship networks and applies modular community detection algorithms in NetworkX to handle multi-hop queries. RAG output quality is measured using mathematical grounding, relevance, correctness, and hallucination scoring checkers that run offline. We present the complete mathematical equations, data pipelines, and validation results.
 \end{abstract}
 
 \section{Introduction}
@@ -65,6 +65,73 @@ To evaluate answer quality, four metrics are computed mathematically:
     \text{Hallucination} = 1.0 - \text{Faithfulness} = 1.0 - \frac{|A \cap C|}{|A|}
     \end{equation}
 \end{enumerate}
+
+\section{System Architecture \& Class Diagrams}
+The platform incorporates hierarchical separation between the indexing pipeline and evaluation layers.
+
+\subsection{System Sequence Flows}
+The step-by-step processing of enterprise documents is detailed below:
+\begin{enumerate}
+    \item **Document Upload**: Raw document file (PDF, Markdown, text) is uploaded via `/ingest` API.
+    \item **Table-Aware Chunker**: Segments inputs into 600-character segments, detecting and preserving tables.
+    \item **Parallel Processing**: 
+    \begin{itemize}
+        \item Submits chunks to the Vector Store \& BM25 index database.
+        \item Extracts relational entity triplets to populate the NetworkX Knowledge Graph.
+    \end{itemize}
+    \item **Query Processing**: User submits query.
+    \item **RRF Retriever**: Fuses sparse and dense hits, followed by Cross-Encoder reranking.
+    \item **GraphRAG Community Search**: Extracts related clusters from the NetworkX graph.
+    \item **Response Synthesis**: Consolidates context documents and knowledge graph clusters to form the prompt.
+    \item **Evaluator Pipeline**: Automatically computes Relevance, Faithfulness, Correctness, and Hallucination.
+\end{enumerate}
+
+\subsection{KnowledgeGraph \& RAGBenchEvaluator Class Map}
+The core modules organize spatial entity indexes and metrics:
+\begin{verbatim}
++--------------------------------------------------------------+
+|                        KnowledgeGraph                        |
+|  - graph: DiGraph                                            |
++--------------------------------------------------------------+
+|  + add_relation(source: str, relation: str, target: str)     |
+|  + get_communities() -> list                                 |
+|  + query_graph(entity: str) -> list                          |
++--------------------------------------------------------------+
+                               |
+                               v
++--------------------------------------------------------------+
+|                      RAGBenchEvaluator                       |
++--------------------------------------------------------------+
+|  + evaluate(query, context, answer, ground_truth) -> dict    |
+|  + compute_overlap(tokens_a: list, tokens_b: list) -> float  |
++--------------------------------------------------------------+
+\end{verbatim}
+
+\section{Model Hyperparameters \& Tensor Dimensions}
+To guarantee full reproducibility, the model configurations are specified as follows:
+\begin{itemize}
+    \item \textbf{Chunking Bounds}:
+    \begin{itemize}
+        \item Text Chunker Size: 600 characters, overlap $= 60$.
+        \item Table Preservation: Auto-groups consecutive lines matching Markdown/CSV columns.
+    \end{itemize}
+    \item \textbf{SentenceTransformer Dimensions}:
+    \begin{itemize}
+        \item Dense Model Architecture: `all-MiniLM-L6-v2` (384 embeddings dimensions).
+        \item Reciprocal Rank Fusion Constant ($k$): 60.
+    \end{itemize}
+    \item \textbf{Cross-Encoder Reranker Dimensions}:
+    \begin{itemize}
+        \item Model Architecture: `cross-encoder/ms-marco-MiniLM-L-6-v2`.
+        \item Inner Attention Heads: 12.
+        \item Output Rerank Target Count ($K$): 10.
+    \end{itemize}
+    \item \textbf{Evaluation Tokenizer}:
+    \begin{itemize}
+        \item Stopword filtering and punctuation stripping.
+        \item Lowercase token-based Jaccard overlap computation.
+    \end{itemize}
+\end{itemize}
 
 \section{Verification \& DevOps}
 InsightRAG Pro implements the AI Engineering Verification Framework. Running `make verify` executes Ruff formatting, Mypy checks, unit tests, and compiles the JSON reports under `reports/latest.json`. The codebase features 29 modules, 10 unit tests, FastAPI endpoints, a Streamlit dashboard, and Docker configurations.
